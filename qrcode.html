@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QR Code — SMEE Feira</title>
+  <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;color:#0f172a;min-height:100vh}
+
+    /* TOPBAR */
+    .topbar{background:#185FA5;color:white;padding:14px 24px;display:flex;align-items:center;gap:12px}
+    .topbar svg{flex-shrink:0}
+    .topbar-title{font-size:16px;font-weight:600}
+    .topbar-sub{font-size:13px;opacity:.8}
+
+    /* LAYOUT */
+    .page{display:grid;grid-template-columns:340px 1fr;gap:24px;padding:24px;max-width:1100px;margin:0 auto}
+    @media(max-width:700px){.page{grid-template-columns:1fr}}
+
+    /* PAINEL DE CONTROLES */
+    .controls{display:flex;flex-direction:column;gap:16px}
+    .card{background:white;border:1px solid #e2e8f0;border-radius:12px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.07)}
+    .card-title{font-size:14px;font-weight:600;color:#475569;text-transform:uppercase;letter-spacing:.05em;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+    label{font-size:13px;color:#64748b;display:block;margin-bottom:4px;margin-top:10px}
+    label:first-of-type{margin-top:0}
+    input,select,textarea{width:100%;font-size:14px;padding:8px 10px;border:1px solid #e2e8f0;border-radius:8px;outline:none;background:#fff;color:#0f172a;transition:border-color .15s}
+    input:focus,select:focus,textarea:focus{border-color:#185FA5;box-shadow:0 0 0 3px #E6F1FB}
+    textarea{resize:vertical;min-height:60px}
+    .color-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    input[type=color]{height:40px;padding:2px 4px;cursor:pointer}
+    input[type=range]{padding:0;margin-top:4px}
+    .range-val{font-size:12px;color:#185FA5;font-weight:600;text-align:right}
+
+    /* BOTÕES */
+    .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;border:none;transition:opacity .15s}
+    .btn:hover{opacity:.88}
+    .btn-blue{background:#185FA5;color:white;width:100%;justify-content:center;margin-bottom:8px}
+    .btn-gray{background:#f1f5f9;color:#475569;border:1px solid #e2e8f0;width:100%;justify-content:center}
+    .btn-green{background:#3B6D11;color:white;width:100%;justify-content:center}
+
+    /* PREVIEW */
+    .preview-area{display:flex;flex-direction:column;gap:20px}
+    .preview-label{font-size:13px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px}
+
+    /* MODELOS DE CARD */
+    .model-tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+    .model-tab{padding:6px 14px;border-radius:20px;font-size:13px;font-weight:500;cursor:pointer;border:1px solid #e2e8f0;background:white;color:#64748b;transition:all .15s}
+    .model-tab.active{background:#185FA5;color:white;border-color:#185FA5}
+
+    /* CANVAS WRAPPER */
+    .canvas-wrap{display:flex;justify-content:center;align-items:center;background:white;border:1px solid #e2e8f0;border-radius:12px;padding:24px;min-height:300px}
+    canvas{display:block}
+
+    /* MODELOS PARA IMPRESSÃO */
+    #model-simples,#model-banner,#model-cartao,#model-totem{display:none}
+
+    /* MODELO SIMPLES */
+    .qr-simples{text-align:center;padding:32px;background:white;border-radius:12px;display:inline-block}
+    .qr-simples .titulo{font-size:20px;font-weight:700;color:#0a1628;margin-bottom:4px}
+    .qr-simples .subtitulo{font-size:14px;color:#64748b;margin-bottom:20px}
+    .qr-simples .instrucao{font-size:14px;color:#185FA5;font-weight:600;margin-top:16px}
+    .qr-simples .url{font-size:11px;color:#94a3b8;margin-top:6px}
+
+    /* MODELO BANNER */
+    .qr-banner{width:600px;background:linear-gradient(135deg,#0a1628,#185FA5);border-radius:16px;padding:40px;color:white;display:flex;align-items:center;gap:40px}
+    .qr-banner .left{flex-shrink:0}
+    .qr-banner .right{flex:1}
+    .qr-banner .tag{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;opacity:.7;margin-bottom:8px}
+    .qr-banner .titulo{font-size:28px;font-weight:800;line-height:1.2;margin-bottom:12px}
+    .qr-banner .desc{font-size:14px;opacity:.85;line-height:1.6;margin-bottom:20px}
+    .qr-banner .seta{font-size:36px;margin-bottom:8px}
+    .qr-banner .instrucao{font-size:15px;font-weight:700;opacity:.9}
+    .qr-banner .url-box{background:rgba(255,255,255,.15);border-radius:8px;padding:8px 14px;font-size:12px;margin-top:12px;opacity:.8}
+
+    /* MODELO CARTÃO */
+    .qr-cartao{width:340px;background:white;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.15)}
+    .qr-cartao .topo{background:#185FA5;padding:20px;color:white;text-align:center}
+    .qr-cartao .topo .nome-evento{font-size:18px;font-weight:700;margin-bottom:2px}
+    .qr-cartao .topo .subtitulo{font-size:12px;opacity:.8}
+    .qr-cartao .corpo{padding:24px;text-align:center}
+    .qr-cartao .instrucao{font-size:13px;color:#475569;margin-bottom:16px;font-weight:500}
+    .qr-cartao .rodape{background:#f8fafc;padding:12px 16px;text-align:center;font-size:11px;color:#94a3b8;border-top:1px solid #e2e8f0}
+
+    /* MODELO TOTEM */
+    .qr-totem{width:400px;background:white;border-radius:20px;overflow:hidden;border:3px solid #185FA5}
+    .qr-totem .topo{background:#185FA5;padding:24px 20px;color:white;text-align:center}
+    .qr-totem .topo .icone{font-size:40px;margin-bottom:8px}
+    .qr-totem .topo .titulo{font-size:22px;font-weight:800;margin-bottom:4px}
+    .qr-totem .topo .sub{font-size:13px;opacity:.85}
+    .qr-totem .corpo{padding:32px;text-align:center}
+    .qr-totem .seta-wrap{font-size:48px;color:#185FA5;margin-bottom:8px;animation:bounce 1.5s infinite}
+    @keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+    .qr-totem .cta{font-size:16px;font-weight:700;color:#0a1628;margin-bottom:24px}
+    .qr-totem .rodape{background:#185FA5;padding:14px;color:white;text-align:center;font-size:12px}
+
+    @media print{
+      .topbar,.controls,.model-tabs,.btn,.preview-label{display:none!important}
+      .page{grid-template-columns:1fr;padding:0}
+      .preview-area{padding:0}
+      .canvas-wrap{border:none;padding:0;justify-content:center}
+      body{background:white}
+    }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+    <rect width="32" height="32" rx="8" fill="rgba(255,255,255,0.2)"/>
+    <path d="M7 24L13 12l5 8 4-5.5 6 9.5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+  <div>
+    <div class="topbar-title">SMEE Feira — Gerador de QR Code</div>
+    <div class="topbar-sub">Crie QR Codes profissionais para impressão e banners</div>
+  </div>
+</div>
+
+<div class="page">
+
+  <!-- CONTROLES -->
+  <div class="controls">
+    <div class="card">
+      <div class="card-title">⚙️ Configurações</div>
+
+      <label>URL do cadastro</label>
+      <input type="text" id="qr-url" value="https://adasilva-simon.github.io/visitantes/" oninput="update()">
+
+      <label>Título do evento</label>
+      <input type="text" id="qr-titulo" value="SMEE Feira 2026" oninput="update()">
+
+      <label>Subtítulo / descrição</label>
+      <input type="text" id="qr-sub" value="Cadastro de Visitantes" oninput="update()">
+
+      <label>Instrução para o visitante</label>
+      <input type="text" id="qr-instrucao" value="Escaneie e cadastre-se!" oninput="update()">
+
+      <label>Tamanho do QR Code: <span class="range-val" id="size-val">250px</span></label>
+      <input type="range" id="qr-size" min="150" max="400" value="250" step="10" oninput="document.getElementById('size-val').textContent=this.value+'px';update()">
+
+      <div class="color-row" style="margin-top:10px">
+        <div>
+          <label>Cor do QR Code</label>
+          <input type="color" id="qr-fg" value="#0a1628" oninput="update()">
+        </div>
+        <div>
+          <label>Fundo do QR Code</label>
+          <input type="color" id="qr-bg" value="#ffffff" oninput="update()">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">💾 Exportar</div>
+      <button class="btn btn-blue" onclick="downloadPNG()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Baixar PNG (alta resolução)
+      </button>
+      <button class="btn btn-gray" onclick="window.print()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        Imprimir página
+      </button>
+    </div>
+  </div>
+
+  <!-- PREVIEW -->
+  <div class="preview-area">
+    <div class="preview-label">Escolha o modelo</div>
+
+    <div class="model-tabs">
+      <button class="model-tab active" onclick="setModel('simples',this)">Simples</button>
+      <button class="model-tab" onclick="setModel('banner',this)">Banner horizontal</button>
+      <button class="model-tab" onclick="setModel('cartao',this)">Cartão</button>
+      <button class="model-tab" onclick="setModel('totem',this)">Totem / Display</button>
+    </div>
+
+    <!-- MODELO SIMPLES -->
+    <div class="canvas-wrap" id="model-simples" style="display:flex">
+      <div class="qr-simples" id="wrap-simples">
+        <div class="titulo" id="txt-titulo-s">SMEE Feira 2026</div>
+        <div class="subtitulo" id="txt-sub-s">Cadastro de Visitantes</div>
+        <canvas id="qr-simples"></canvas>
+        <div class="instrucao" id="txt-inst-s">📱 Escaneie e cadastre-se!</div>
+        <div class="url" id="txt-url-s">adasilva-simon.github.io/visitantes/</div>
+      </div>
+    </div>
+
+    <!-- MODELO BANNER -->
+    <div class="canvas-wrap" id="model-banner" style="display:none;overflow-x:auto">
+      <div class="qr-banner" id="wrap-banner">
+        <div class="left">
+          <canvas id="qr-banner"></canvas>
+        </div>
+        <div class="right">
+          <div class="tag">Cadastro de visitantes</div>
+          <div class="titulo" id="txt-titulo-b">SMEE Feira 2026</div>
+          <div class="desc" id="txt-sub-b">Cadastro de Visitantes</div>
+          <div class="seta">📱</div>
+          <div class="instrucao" id="txt-inst-b">Escaneie e cadastre-se!</div>
+          <div class="url-box" id="txt-url-b">adasilva-simon.github.io/visitantes/</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODELO CARTÃO -->
+    <div class="canvas-wrap" id="model-cartao" style="display:none">
+      <div class="qr-cartao" id="wrap-cartao">
+        <div class="topo">
+          <div class="nome-evento" id="txt-titulo-c">SMEE Feira 2026</div>
+          <div class="subtitulo" id="txt-sub-c">Cadastro de Visitantes</div>
+        </div>
+        <div class="corpo">
+          <div class="instrucao" id="txt-inst-c">📱 Escaneie para se cadastrar!</div>
+          <canvas id="qr-cartao"></canvas>
+        </div>
+        <div class="rodape" id="txt-url-c">adasilva-simon.github.io/visitantes/</div>
+      </div>
+    </div>
+
+    <!-- MODELO TOTEM -->
+    <div class="canvas-wrap" id="model-totem" style="display:none">
+      <div class="qr-totem" id="wrap-totem">
+        <div class="topo">
+          <div class="icone">🎪</div>
+          <div class="titulo" id="txt-titulo-t">SMEE Feira 2026</div>
+          <div class="sub" id="txt-sub-t">Cadastro de Visitantes</div>
+        </div>
+        <div class="corpo">
+          <div class="seta-wrap">👇</div>
+          <div class="cta" id="txt-inst-t">Escaneie para se cadastrar!</div>
+          <canvas id="qr-totem"></canvas>
+        </div>
+        <div class="rodape" id="txt-url-t">adasilva-simon.github.io/visitantes/</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const CANVASES = {
+    simples: 'qr-simples',
+    banner:  'qr-banner',
+    cartao:  'qr-cartao',
+    totem:   'qr-totem'
+  };
+
+  let currentModel = 'simples';
+
+  function setModel(model, btn) {
+    currentModel = model;
+    document.querySelectorAll('.model-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    Object.keys(CANVASES).forEach(k => {
+      document.getElementById('model-' + k).style.display = k === model ? 'flex' : 'none';
+    });
+    update();
+  }
+
+  function getVal(id) { return document.getElementById(id)?.value || ''; }
+
+  function update() {
+    const url      = getVal('qr-url');
+    const titulo   = getVal('qr-titulo');
+    const sub      = getVal('qr-sub');
+    const inst     = getVal('qr-instrucao');
+    const size     = parseInt(getVal('qr-size')) || 250;
+    const fg       = getVal('qr-fg');
+    const bg       = getVal('qr-bg');
+    const urlShort = url.replace('https://','').replace(/\/$/,'');
+
+    // Gera QR nos 4 canvases
+    Object.values(CANVASES).forEach(canvasId => {
+      const c = document.getElementById(canvasId);
+      if (!c || typeof QRious === 'undefined') return;
+      new QRious({
+        element:    c,
+        value:      url,
+        size:       size,
+        level:      'H',
+        background: bg,
+        foreground: fg
+      });
+    });
+
+    // Atualiza textos
+    const setText = (id, val) => { const el=document.getElementById(id); if(el) el.textContent = val; };
+    setText('txt-titulo-s', titulo); setText('txt-sub-s', sub);
+    setText('txt-inst-s',   '📱 ' + inst); setText('txt-url-s', urlShort);
+    setText('txt-titulo-b', titulo); setText('txt-sub-b', sub);
+    setText('txt-inst-b',   inst);   setText('txt-url-b', urlShort);
+    setText('txt-titulo-c', titulo); setText('txt-sub-c', sub);
+    setText('txt-inst-c',   '📱 ' + inst);   setText('txt-url-c', urlShort);
+    setText('txt-titulo-t', titulo); setText('txt-sub-t', sub);
+    setText('txt-inst-t',   inst);   setText('txt-url-t', urlShort);
+  }
+
+  function downloadPNG() {
+    const canvasId = CANVASES[currentModel];
+    const canvas   = document.getElementById(canvasId);
+    if (!canvas) return;
+
+    // Gera em alta resolução (2x)
+    const size = parseInt(getVal('qr-size')) || 250;
+    const scale = 3;
+    const hiCanvas = document.createElement('canvas');
+    hiCanvas.width  = size * scale;
+    hiCanvas.height = size * scale;
+    const ctx = hiCanvas.getContext('2d');
+    ctx.scale(scale, scale);
+
+    new QRious({
+      element:    document.createElement('canvas'),
+      value:      getVal('qr-url'),
+      size:       size,
+      level:      'H',
+      background: getVal('qr-bg'),
+      foreground: getVal('qr-fg')
+    });
+
+    // Exporta o canvas original em alta res
+    const exportCanvas = document.createElement('canvas');
+    exportCanvas.width  = size * scale;
+    exportCanvas.height = size * scale;
+    const ectx = exportCanvas.getContext('2d');
+    ectx.imageSmoothingEnabled = false;
+    ectx.drawImage(canvas, 0, 0, size * scale, size * scale);
+
+    const a = document.createElement('a');
+    a.download = 'qrcode-smee-feira-' + currentModel + '.png';
+    a.href = exportCanvas.toDataURL('image/png');
+    a.click();
+  }
+
+  // Inicia ao carregar
+  window.addEventListener('load', function() {
+    if (typeof QRious !== 'undefined') {
+      update();
+    } else {
+      setTimeout(update, 500);
+    }
+  });
+</script>
+</body>
+</html>
