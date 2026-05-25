@@ -612,8 +612,6 @@ function initApp() {
 <script>
 
 /* ---- AUTH SIMPLES ---- */
-const KEYS = (window.ACCESS_KEYS || []).map(k => k.key.trim().toUpperCase());
-
 function authCheck() {
   if (sessionStorage.getItem('feira_ok') === '1') {
     document.getElementById('auth-screen').style.display = 'none';
@@ -623,17 +621,25 @@ function authCheck() {
   }
   document.getElementById('auth-screen').style.display = 'flex';
   document.getElementById('app-screen').style.display  = 'none';
-  setTimeout(() => document.getElementById('auth-key-input').focus(), 100);
+  setTimeout(function() {
+    const inp = document.getElementById('auth-key-input');
+    if (inp) inp.focus();
+  }, 100);
 }
 
 function authSubmit() {
   const input = document.getElementById('auth-key-input');
   const msg   = document.getElementById('auth-msg');
-  const val   = (input.value || '').trim().toUpperCase();
+  const val   = (input.value || '').trim().toUpperCase().replace(/\s/g, '');
 
   if (!val) { msg.textContent = 'Digite a chave de acesso.'; return; }
 
-  if (KEYS.includes(val)) {
+  // Lê as chaves no momento da validação — garante que ACCESS_KEYS já foi carregado
+  const validKeys = (window.ACCESS_KEYS || []).map(function(k) {
+    return k.key.trim().toUpperCase().replace(/\s/g, '');
+  });
+
+  if (validKeys.includes(val)) {
     sessionStorage.setItem('feira_ok', '1');
     document.getElementById('auth-screen').style.display = 'none';
     document.getElementById('app-screen').style.display  = 'block';
