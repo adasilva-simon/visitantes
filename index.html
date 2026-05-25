@@ -171,6 +171,13 @@ tbody td { padding: 8px 12px; }
   .metrics { grid-template-columns: 1fr 1fr; }
 }
 
+
+.filter-bar { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 16px; display: flex; flex-direction: column; gap: 10px; box-shadow: var(--shadow); }
+.filter-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.filter-row input[type=text] { min-width: 180px; max-width: 240px; }
+.filter-row input[type=date] { width: auto; min-width: 140px; }
+.filter-row select { width: auto; min-width: 160px; }
+@media (max-width: 600px) { .filter-row { flex-direction: column; } .filter-row input, .filter-row select { width: 100%; max-width: 100%; } }
 </style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.3.0/tabler-icons.min.css">
 
@@ -319,6 +326,31 @@ tbody td { padding: 8px 12px; }
         <h1>Dashboard</h1>
         <p>Indicadores em tempo real dos visitantes registrados.</p>
       </div>
+      <div class="filter-bar" style="margin-bottom:20px">
+        <div class="filter-row">
+          <select id="dash-flt-estande" onchange="renderDash()">
+            <option value="">Todos os estandes</option>
+            <option>Estande A — Automação Industrial</option>
+            <option>Estande B — Energia e Sustentabilidade</option>
+            <option>Estande C — Software e TI</option>
+            <option>Estande D — Conectividade e IoT</option>
+            <option>Estande E — Segurança e Monitoramento</option>
+          </select>
+          <select id="dash-flt-temp" onchange="renderDash()">
+            <option value="">Todos os leads</option>
+            <option value="hot">Quentes</option>
+            <option value="warm">Mornos</option>
+            <option value="cold">Frios</option>
+          </select>
+          <label style="font-size:13px;color:var(--muted);white-space:nowrap">De:</label>
+          <input id="dash-flt-ini" type="date" onchange="renderDash()" style="width:auto">
+          <label style="font-size:13px;color:var(--muted);white-space:nowrap">Até:</label>
+          <input id="dash-flt-fim" type="date" onchange="renderDash()" style="width:auto">
+          <button class="btn btn-sm" onclick="limparFiltrosDash()">
+            <i class="ti ti-x" aria-hidden="true"></i> Limpar
+          </button>
+        </div>
+      </div>
       <div class="metrics" id="kpi-grid"></div>
       <div class="charts-row">
         <div class="card">
@@ -346,17 +378,37 @@ tbody td { padding: 8px 12px; }
         <h1>Lista de Visitantes</h1>
         <p>Pesquise, filtre e exporte os registros.</p>
       </div>
-      <div class="search-row">
-        <input id="search" type="text" placeholder="Buscar por nome, empresa ou e-mail..." oninput="renderList()">
-        <select id="flt-temp" onchange="renderList()" style="width:auto">
-          <option value="">Todos os leads</option>
-          <option value="hot">Quentes</option>
-          <option value="warm">Mornos</option>
-          <option value="cold">Frios</option>
-        </select>
-        <button class="btn btn-sm" onclick="exportCSV()">
-          <i class="ti ti-download" aria-hidden="true"></i> Exportar CSV
-        </button>
+      <div class="filter-bar">
+        <div class="filter-row">
+          <input id="search" type="text" placeholder="Buscar por nome, empresa ou e-mail..." oninput="renderList()">
+          <select id="flt-estande" onchange="renderList()">
+            <option value="">Todos os estandes</option>
+            <option>Estande A — Automação Industrial</option>
+            <option>Estande B — Energia e Sustentabilidade</option>
+            <option>Estande C — Software e TI</option>
+            <option>Estande D — Conectividade e IoT</option>
+            <option>Estande E — Segurança e Monitoramento</option>
+          </select>
+          <select id="flt-temp" onchange="renderList()">
+            <option value="">Todos os leads</option>
+            <option value="hot">Quentes</option>
+            <option value="warm">Mornos</option>
+            <option value="cold">Frios</option>
+          </select>
+          <input id="flt-empresa" type="text" placeholder="Filtrar por empresa..." oninput="renderList()" style="max-width:180px">
+        </div>
+        <div class="filter-row">
+          <label style="font-size:13px;color:var(--muted);white-space:nowrap">De:</label>
+          <input id="flt-data-ini" type="date" onchange="renderList()" style="width:auto">
+          <label style="font-size:13px;color:var(--muted);white-space:nowrap">Até:</label>
+          <input id="flt-data-fim" type="date" onchange="renderList()" style="width:auto">
+          <button class="btn btn-sm" onclick="limparFiltros()">
+            <i class="ti ti-x" aria-hidden="true"></i> Limpar filtros
+          </button>
+          <button class="btn btn-sm btn-primary" onclick="exportCSV()">
+            <i class="ti ti-download" aria-hidden="true"></i> Exportar CSV
+          </button>
+        </div>
       </div>
       <div class="tbl-wrap">
         <table>
@@ -528,6 +580,70 @@ function deleteFromFirebase(id) {
 
 </script>
 <script>
+function parseDateBR(str) {
+  if (!str) return null;
+  const p = str.split('/');
+  if (p.length === 3) return new Date(+p[2], +p[1]-1, +p[0]);
+  return null;
+}
+
+function getListFiltered() {
+  const search  = (document.getElementById('search')?.value || '').toLowerCase();
+  const estande = document.getElementById('flt-estande')?.value || '';
+  const temp    = document.getElementById('flt-temp')?.value || '';
+  const empresa = (document.getElementById('flt-empresa')?.value || '').toLowerCase();
+  const dataIni = document.getElementById('flt-data-ini')?.value || '';
+  const dataFim = document.getElementById('flt-data-fim')?.value || '';
+  return DB.filter(function(r) {
+    if (search && !r.nome.toLowerCase().includes(search) &&
+        !(r.empresa||'').toLowerCase().includes(search) &&
+        !r.email.toLowerCase().includes(search)) return false;
+    if (estande && r.estande !== estande) return false;
+    if (temp && r.temp !== temp) return false;
+    if (empresa && !(r.empresa||'').toLowerCase().includes(empresa)) return false;
+    if (dataIni || dataFim) {
+      const rd = parseDateBR(r.data);
+      if (rd) {
+        if (dataIni && rd < new Date(dataIni)) return false;
+        if (dataFim && rd > new Date(dataFim + 'T23:59:59')) return false;
+      }
+    }
+    return true;
+  });
+}
+
+function getDashFiltered() {
+  const estande = document.getElementById('dash-flt-estande')?.value || '';
+  const temp    = document.getElementById('dash-flt-temp')?.value || '';
+  const dataIni = document.getElementById('dash-flt-ini')?.value || '';
+  const dataFim = document.getElementById('dash-flt-fim')?.value || '';
+  return DB.filter(function(r) {
+    if (estande && r.estande !== estande) return false;
+    if (temp && r.temp !== temp) return false;
+    if (dataIni || dataFim) {
+      const rd = parseDateBR(r.data);
+      if (rd) {
+        if (dataIni && rd < new Date(dataIni)) return false;
+        if (dataFim && rd > new Date(dataFim + 'T23:59:59')) return false;
+      }
+    }
+    return true;
+  });
+}
+
+function limparFiltros() {
+  ['search','flt-estande','flt-temp','flt-empresa','flt-data-ini','flt-data-fim']
+    .forEach(function(id) { const el=document.getElementById(id); if(el) el.value=''; });
+  renderList();
+}
+
+function limparFiltrosDash() {
+  ['dash-flt-estande','dash-flt-temp','dash-flt-ini','dash-flt-fim']
+    .forEach(function(id) { const el=document.getElementById(id); if(el) el.value=''; });
+  renderDash();
+}
+
+
 /* SMEE Feira — app.js */
 
 const DB_KEY = 'smee_feira_visitantes';
@@ -626,17 +742,7 @@ function renderList() {
   const tbody = document.getElementById('tbl-body');
   const empty = document.getElementById('list-empty');
   if (!tbody) return;
-
-  const q  = (document.getElementById('search')?.value || '').toLowerCase();
-  const ft = document.getElementById('flt-temp')?.value || '';
-
-  const data = DB.filter(r => {
-    if (ft && r.temp !== ft) return false;
-    if (q && !r.nome.toLowerCase().includes(q) &&
-        !(r.empresa||'').toLowerCase().includes(q) &&
-        !r.email.toLowerCase().includes(q)) return false;
-    return true;
-  }).slice().reverse();
+  const data = getListFiltered().slice().reverse();
 
   if (!data.length) {
     tbody.innerHTML = '';
@@ -699,7 +805,7 @@ function renderDash() {
   }
 
   const tc = { hot: 0, warm: 0, cold: 0 };
-  DB.forEach(r => { tc[r.temp] = (tc[r.temp] || 0) + 1; });
+  rows.forEach(r => { tc[r.temp] = (tc[r.temp] || 0) + 1; });
   const maxT = Math.max(tc.hot, tc.warm, tc.cold, 1);
   const chartTemp = document.getElementById('chart-temp');
   if (chartTemp) {
