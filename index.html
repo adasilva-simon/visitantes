@@ -267,7 +267,7 @@
    Para adicionar ou remover usuários, edite o array ACCESS_KEYS.
    Após editar, faça commit no GitHub — entra em vigor imediatamente.
 */
-var ACCESS_KEYS = [
+const ACCESS_KEYS = [
   { key: 'FAIR-2024-SMEE-A1B2', label: 'Estande A',         expires: null },
   { key: 'FAIR-2024-SMEE-C3D4', label: 'Estande B',         expires: null },
   { key: 'FAIR-2024-SMEE-E5F6', label: 'Estande C',         expires: null },
@@ -277,10 +277,10 @@ var ACCESS_KEYS = [
 
 </script>
 <script>
-/*  SMEE Feira — app.js  */
+/* SMEE Feira — app.js */
 
-var DB_KEY = 'smee_feira_visitantes';
-var DB = JSON.parse(localStorage.getItem(DB_KEY) || '[]');
+const DB_KEY = 'smee_feira_visitantes';
+let DB = JSON.parse(localStorage.getItem(DB_KEY) || '[]');
 
 function saveDB() { localStorage.setItem(DB_KEY, JSON.stringify(DB)); }
 
@@ -288,91 +288,97 @@ function escHtml(s) {
   return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-/* ---- NAVEGAÇÃO ---- */
-var TAB_TITLES = {
-  'reg':    'Cadastro de Visitante',
-  'dash':   'Dashboard — KPIs',
-  'list':   'Lista de Visitantes',
-  'lgpd':   'Conformidade LGPD',
-  'config': 'Configuração Firebase'
+const TAB_TITLES = {
+  reg: 'Cadastro de Visitante',
+  dash: 'Dashboard — KPIs',
+  list: 'Lista de Visitantes',
+  lgpd: 'Conformidade LGPD',
+  config: 'Configuração Firebase'
 };
 
 function go(tab) {
-  document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
-  document.querySelectorAll('.section').forEach(function(s) { s.classList.remove('active'); });
-  var idx = ['reg','dash','list','lgpd','config'].indexOf(tab);
-  document.querySelectorAll('.tab')[idx].classList.add('active');
-  document.getElementById('sec-' + tab).classList.add('active');
-  document.getElementById('page-title').textContent = TAB_TITLES[tab] || '';
-  if (tab === 'dash')   renderDash();
-  if (tab === 'list')   renderList();
-  if (tab === 'lgpd')   renderLgpd();
+  document.querySelectorAll('.tab, .nav-item').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  const idx = ['reg','dash','list','lgpd','config'].indexOf(tab);
+  document.querySelectorAll('.nav-item')[idx]?.classList.add('active');
+  document.getElementById('sec-' + tab)?.classList.add('active');
+  const titleEl = document.getElementById('page-title');
+  if (titleEl) titleEl.textContent = TAB_TITLES[tab] || '';
+  if (tab === 'dash') renderDash();
+  if (tab === 'list') renderList();
+  if (tab === 'lgpd') renderLgpd();
 }
 
-/* ---- ALERTAS ---- */
 function showAlert(msg, type) {
-  var el = document.getElementById('form-alert');
+  const el = document.getElementById('form-alert');
+  if (!el) return;
   el.className = 'alert alert-' + (type || 'success');
-  el.innerHTML = '<i class="ti ti-' + (type === 'error' ? 'alert-circle' : 'check') + '" aria-hidden="true"></i> ' + msg;
+  el.innerHTML = `<i class="ti ti-${type === 'error' ? 'alert-circle' : 'check'}" aria-hidden="true"></i> ${msg}`;
   el.style.display = 'flex';
-  setTimeout(function() { el.style.display = 'none'; }, 3500);
+  setTimeout(() => { el.style.display = 'none'; }, 3500);
 }
 
-/* ---- FORMULÁRIO ---- */
 function limparForm() {
-  ['f-nome','f-email','f-tel','f-empresa','f-cargo','f-obs'].forEach(function(id) {
-    document.getElementById(id).value = '';
+  ['f-nome','f-email','f-tel','f-empresa','f-cargo','f-obs'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
   });
-  document.getElementById('f-estande').value = '';
-  document.getElementById('f-temp').value = 'warm';
-  document.getElementById('c1').checked = false;
-  document.getElementById('c2').checked = false;
+  const estande = document.getElementById('f-estande');
+  const temp    = document.getElementById('f-temp');
+  const c1      = document.getElementById('c1');
+  const c2      = document.getElementById('c2');
+  if (estande) estande.value = '';
+  if (temp)    temp.value    = 'warm';
+  if (c1)      c1.checked    = false;
+  if (c2)      c2.checked    = false;
 }
 
 function registrar() {
-  var nome    = document.getElementById('f-nome').value.trim();
-  var email   = document.getElementById('f-email').value.trim();
-  var estande = document.getElementById('f-estande').value;
-  var c1      = document.getElementById('c1').checked;
-  var c2      = document.getElementById('c2').checked;
+  const nome    = document.getElementById('f-nome')?.value.trim() || '';
+  const email   = document.getElementById('f-email')?.value.trim() || '';
+  const estande = document.getElementById('f-estande')?.value || '';
+  const c1      = document.getElementById('c1')?.checked;
+  const c2      = document.getElementById('c2')?.checked;
 
-  if (!nome)          { showAlert('Preencha o nome completo.', 'error'); return; }
-  if (!email)         { showAlert('Preencha o e-mail.', 'error'); return; }
-  if (!estande)       { showAlert('Selecione o estande de interesse.', 'error'); return; }
-  if (!c1 || !c2)     { showAlert('Os dois consentimentos LGPD são obrigatórios.', 'error'); return; }
+  if (!nome)       { showAlert('Preencha o nome completo.', 'error'); return; }
+  if (!email)      { showAlert('Preencha o e-mail.', 'error'); return; }
+  if (!estande)    { showAlert('Selecione o estande de interesse.', 'error'); return; }
+  if (!c1 || !c2)  { showAlert('Os dois consentimentos LGPD são obrigatórios.', 'error'); return; }
 
-  var now = new Date();
-  var reg = {
-    id:               Date.now().toString(),
-    nome:             nome,
-    email:            email,
-    tel:              document.getElementById('f-tel').value.trim(),
-    empresa:          document.getElementById('f-empresa').value.trim(),
-    cargo:            document.getElementById('f-cargo').value.trim(),
-    estande:          estande,
-    temp:             document.getElementById('f-temp').value,
-    obs:              document.getElementById('f-obs').value.trim(),
-    consentimento1:   true,
-    consentimento2:   true,
+  const now = new Date();
+  const reg = {
+    id:                Date.now().toString(),
+    nome,
+    email,
+    tel:               document.getElementById('f-tel')?.value.trim() || '',
+    empresa:           document.getElementById('f-empresa')?.value.trim() || '',
+    cargo:             document.getElementById('f-cargo')?.value.trim() || '',
+    estande,
+    temp:              document.getElementById('f-temp')?.value || 'warm',
+    obs:               document.getElementById('f-obs')?.value.trim() || '',
+    consentimento1:    true,
+    consentimento2:    true,
     dataConsentimento: now.toISOString(),
-    hora:             now.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
-    data:             now.toLocaleDateString('pt-BR')
+    hora:              now.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
+    data:              now.toLocaleDateString('pt-BR')
   };
 
   DB.push(reg);
   saveDB();
   showAlert('Visitante registrado com sucesso!');
   limparForm();
+  updateFooterCount();
 }
 
-/* ---- LISTA ---- */
 function renderList() {
-  var tbody = document.getElementById('tbl-body');
-  var empty = document.getElementById('list-empty');
-  var q     = (document.getElementById('search').value || '').toLowerCase();
-  var ft    = document.getElementById('flt-temp').value;
+  const tbody = document.getElementById('tbl-body');
+  const empty = document.getElementById('list-empty');
+  if (!tbody) return;
 
-  var data = DB.filter(function(r) {
+  const q  = (document.getElementById('search')?.value || '').toLowerCase();
+  const ft = document.getElementById('flt-temp')?.value || '';
+
+  const data = DB.filter(r => {
     if (ft && r.temp !== ft) return false;
     if (q && !r.nome.toLowerCase().includes(q) &&
         !(r.empresa||'').toLowerCase().includes(q) &&
@@ -380,185 +386,208 @@ function renderList() {
     return true;
   }).slice().reverse();
 
-  if (!data.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
-  empty.style.display = 'none';
+  if (!data.length) {
+    tbody.innerHTML = '';
+    if (empty) empty.style.display = 'block';
+    return;
+  }
+  if (empty) empty.style.display = 'none';
 
-  var tempLabel = {
+  const tempLabel = {
     hot:  '<span class="badge badge-hot">Quente</span>',
     warm: '<span class="badge badge-warm">Morno</span>',
     cold: '<span class="badge badge-cold">Frio</span>'
   };
 
-  tbody.innerHTML = data.map(function(r) {
-    return '<tr>'
-      + '<td><strong>' + escHtml(r.nome) + '</strong></td>'
-      + '<td>' + escHtml(r.empresa || '—') + '</td>'
-      + '<td style="font-size:12px">' + escHtml(r.email) + '</td>'
-      + '<td style="font-size:12px">' + escHtml(r.estande.split('—')[0].trim()) + '</td>'
-      + '<td>' + (tempLabel[r.temp] || '') + '</td>'
-      + '<td style="font-size:12px">' + escHtml(r.hora) + ' ' + escHtml(r.data) + '</td>'
-      + '<td><span class="badge badge-lgpd">✓ LGPD</span></td>'
-      + '<td><button class="btn btn-sm" onclick="excluir(\'' + r.id + '\')" title="Excluir registro"><i class="ti ti-trash" aria-hidden="true"></i></button></td>'
-      + '</tr>';
-  }).join('');
+  tbody.innerHTML = data.map(r => `<tr>
+    <td><strong>${escHtml(r.nome)}</strong></td>
+    <td>${escHtml(r.empresa || '—')}</td>
+    <td style="font-size:12px">${escHtml(r.email)}</td>
+    <td style="font-size:12px">${escHtml(r.estande.split('—')[0].trim())}</td>
+    <td>${tempLabel[r.temp] || ''}</td>
+    <td style="font-size:12px">${escHtml(r.hora)} ${escHtml(r.data)}</td>
+    <td><span class="badge badge-lgpd">✓ LGPD</span></td>
+    <td><button class="btn btn-sm" onclick="excluir('${r.id}')" title="Excluir"><i class="ti ti-trash" aria-hidden="true"></i></button></td>
+  </tr>`).join('');
 }
 
 function excluir(id) {
   if (!confirm('Excluir este registro? (direito ao apagamento — LGPD art. 18)')) return;
-  DB = DB.filter(function(r) { return r.id !== id; });
+  DB = DB.filter(r => r.id !== id);
   saveDB();
   renderList();
+  updateFooterCount();
 }
 
 function excluirTodos() {
   if (!confirm('Excluir TODOS os dados permanentemente? Esta ação não pode ser desfeita.')) return;
-  DB = []; saveDB();
-  renderList(); renderDash(); renderLgpd();
+  DB = [];
+  saveDB();
+  renderList();
+  renderDash();
+  renderLgpd();
+  updateFooterCount();
 }
 
-/* ---- DASHBOARD ---- */
 function renderDash() {
-  var total   = DB.length;
-  var hoje    = DB.filter(function(r) { return r.data === new Date().toLocaleDateString('pt-BR'); }).length;
-  var hot     = DB.filter(function(r) { return r.temp === 'hot'; }).length;
-  var taxa    = total > 0 ? Math.round(hot / total * 100) : 0;
+  const total = DB.length;
+  const hoje  = DB.filter(r => r.data === new Date().toLocaleDateString('pt-BR')).length;
+  const hot   = DB.filter(r => r.temp === 'hot').length;
+  const taxa  = total > 0 ? Math.round(hot / total * 100) : 0;
 
-  document.getElementById('kpi-grid').innerHTML =
-      kpiCard('Total visitantes',  total,  'blue',  'ti-users')
-    + kpiCard('Registros hoje',    hoje,   'green', 'ti-calendar')
-    + kpiCard('Leads quentes',     hot,    'red',   'ti-flame')
-    + kpiCard('Taxa conversão',    taxa + '%', 'amber', 'ti-trending-up')
-    + kpiCard('100% LGPD',         total,  'green', 'ti-shield-check');
+  const grid = document.getElementById('kpi-grid');
+  if (grid) {
+    grid.innerHTML =
+      kpiCard('Total visitantes', total,      'blue',  'ti-users')
+    + kpiCard('Registros hoje',   hoje,       'green', 'ti-calendar')
+    + kpiCard('Leads quentes',    hot,        'red',   'ti-flame')
+    + kpiCard('Taxa conversão',   taxa + '%', 'amber', 'ti-trending-up')
+    + kpiCard('100% LGPD',        total,      'green', 'ti-shield-check');
+  }
 
-  /* Temp */
-  var tc = {hot:0, warm:0, cold:0};
-  DB.forEach(function(r) { tc[r.temp] = (tc[r.temp] || 0) + 1; });
-  var maxT = Math.max(tc.hot, tc.warm, tc.cold, 1);
-  document.getElementById('chart-temp').innerHTML =
-    barRow('Quente', tc.hot,  maxT, '#A32D2D') +
-    barRow('Morno',  tc.warm, maxT, '#854F0B') +
-    barRow('Frio',   tc.cold, maxT, '#185FA5');
+  const tc = { hot: 0, warm: 0, cold: 0 };
+  DB.forEach(r => { tc[r.temp] = (tc[r.temp] || 0) + 1; });
+  const maxT = Math.max(tc.hot, tc.warm, tc.cold, 1);
+  const chartTemp = document.getElementById('chart-temp');
+  if (chartTemp) {
+    chartTemp.innerHTML =
+      barRow('Quente', tc.hot,  maxT, '#A32D2D')
+    + barRow('Morno',  tc.warm, maxT, '#854F0B')
+    + barRow('Frio',   tc.cold, maxT, '#185FA5');
+  }
 
-  /* Estande */
-  var ec = {};
-  DB.forEach(function(r) {
-    var k = r.estande.split('—')[0].trim();
+  const ec = {};
+  DB.forEach(r => {
+    const k = r.estande.split('—')[0].trim();
     ec[k] = (ec[k] || 0) + 1;
   });
-  var maxE = Math.max.apply(null, Object.values(ec).concat([1]));
-  var estHtml = Object.entries(ec).sort(function(a,b){return b[1]-a[1];})
-    .map(function(e) { return barRow(e[0], e[1], maxE, '#185FA5'); }).join('');
-  document.getElementById('chart-estande').innerHTML = estHtml ||
-    '<div style="font-size:13px;color:var(--color-text-secondary);padding:8px">Sem dados ainda.</div>';
+  const maxE = Math.max(...Object.values(ec), 1);
+  const chartEst = document.getElementById('chart-estande');
+  if (chartEst) {
+    chartEst.innerHTML = Object.entries(ec)
+      .sort((a, b) => b[1] - a[1])
+      .map(([k, v]) => barRow(k, v, maxE, '#185FA5'))
+      .join('') || '<div style="font-size:13px;color:var(--muted);padding:8px">Sem dados ainda.</div>';
+  }
 
-  /* Hora */
-  var hc = {};
-  DB.forEach(function(r) {
-    var h = r.hora ? r.hora.split(':')[0] + 'h' : '?';
+  const hc = {};
+  DB.forEach(r => {
+    const h = r.hora ? r.hora.split(':')[0] + 'h' : '?';
     hc[h] = (hc[h] || 0) + 1;
   });
-  var maxH = Math.max.apply(null, Object.values(hc).concat([1]));
-  var horaHtml = Object.entries(hc).sort(function(a,b){return a[0].localeCompare(b[0]);})
-    .map(function(e) { return barRow(e[0], e[1], maxH, '#3B6D11'); }).join('');
-  document.getElementById('chart-hora').innerHTML = horaHtml ||
-    '<div style="font-size:13px;color:var(--color-text-secondary);padding:8px">Sem dados ainda.</div>';
+  const maxH = Math.max(...Object.values(hc), 1);
+  const chartHora = document.getElementById('chart-hora');
+  if (chartHora) {
+    chartHora.innerHTML = Object.entries(hc)
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([k, v]) => barRow(k, v, maxH, '#3B6D11'))
+      .join('') || '<div style="font-size:13px;color:var(--muted);padding:8px">Sem dados ainda.</div>';
+  }
 }
 
 function kpiCard(label, val, color, icon) {
-  return '<div class="metric">'
-    + '<i class="ti ' + icon + '" aria-hidden="true" style="font-size:20px;color:var(--metric-' + color + ')"></i>'
-    + '<div class="lbl">' + label + '</div>'
-    + '<div class="val ' + color + '">' + val + '</div>'
-    + '</div>';
+  return `<div class="metric">
+    <i class="ti ${icon}" aria-hidden="true" style="font-size:20px;color:var(--metric-${color})"></i>
+    <div class="lbl">${label}</div>
+    <div class="val ${color}">${val}</div>
+  </div>`;
 }
 
 function barRow(label, val, max, color) {
-  return '<div class="chart-bar-row">'
-    + '<div class="chart-bar-label">' + escHtml(label) + '</div>'
-    + '<div class="chart-bar-bg"><div class="chart-bar-fill" style="width:' + Math.round(val/max*100) + '%;background:' + color + '"></div></div>'
-    + '<div class="chart-bar-val">' + val + '</div>'
-    + '</div>';
+  return `<div class="chart-bar-row">
+    <div class="chart-bar-label">${escHtml(label)}</div>
+    <div class="chart-bar-bg"><div class="chart-bar-fill" style="width:${Math.round(val/max*100)}%;background:${color}"></div></div>
+    <div class="chart-bar-val">${val}</div>
+  </div>`;
 }
 
-/* ---- LGPD ---- */
 function renderLgpd() {
-  var total = DB.length;
-  document.getElementById('lgpd-stats').innerHTML =
+  const total = DB.length;
+  const el = document.getElementById('lgpd-stats');
+  if (el) {
+    el.innerHTML =
       kpiCard('Total registros',   total,             'blue',  'ti-database')
     + kpiCard('Com consentimento', total,             'green', 'ti-checkbox')
     + kpiCard('Conformidade',      total > 0 ? '100%' : '—', 'green', 'ti-shield-check');
+  }
 }
 
-/* ---- EXPORT CSV ---- */
 function exportCSV() {
   if (!DB.length) { alert('Nenhum dado para exportar.'); return; }
-  var header = ['Nome','E-mail','Telefone','Empresa','Cargo','Estande','Lead','Data','Hora',
-                'Consentimento1','Consentimento2','DataConsentimento','Observações'];
-  var rows = DB.map(function(r) {
-    return [
-      r.nome, r.email, r.tel||'', r.empresa||'', r.cargo||'',
-      r.estande, r.temp, r.data, r.hora,
-      'Sim', 'Sim', r.dataConsentimento,
-      (r.obs||'').replace(/;/g,' ')
-    ].join(';');
-  });
-  var blob = new Blob(['\ufeff' + [header.join(';')].concat(rows).join('\r\n')],
-                      {type:'text/csv;charset=utf-8'});
-  var a = document.createElement('a');
+  const header = ['Nome','E-mail','Telefone','Empresa','Cargo','Estande','Lead',
+                  'Data','Hora','Consentimento1','Consentimento2','DataConsentimento','Observações'];
+  const rows = DB.map(r => [
+    r.nome, r.email, r.tel||'', r.empresa||'', r.cargo||'',
+    r.estande, r.temp, r.data, r.hora,
+    'Sim', 'Sim', r.dataConsentimento,
+    (r.obs||'').replace(/;/g,' ')
+  ].join(';'));
+  const blob = new Blob(['\ufeff' + [header.join(';'), ...rows].join('\r\n')],
+                        {type: 'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'visitantes_feira_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.download = `visitantes_feira_${new Date().toISOString().slice(0,10)}.csv`;
   a.click();
   URL.revokeObjectURL(a.href);
 }
 
-/* ---- FIREBASE CONFIG ---- */
 function salvarConfig() {
-  var cfg = {
-    apiKey:     document.getElementById('cfg-apiKey').value.trim(),
-    authDomain: document.getElementById('cfg-authDomain').value.trim(),
-    projectId:  document.getElementById('cfg-projectId').value.trim(),
-    appId:      document.getElementById('cfg-appId').value.trim()
+  const cfg = {
+    apiKey:     document.getElementById('cfg-apiKey')?.value.trim() || '',
+    authDomain: document.getElementById('cfg-authDomain')?.value.trim() || '',
+    projectId:  document.getElementById('cfg-projectId')?.value.trim() || '',
+    appId:      document.getElementById('cfg-appId')?.value.trim() || ''
   };
+  const status = document.getElementById('fb-status');
   if (!cfg.apiKey || !cfg.projectId) {
-    document.getElementById('fb-status').innerHTML = '<span style="color:#A32D2D">Preencha ao menos API Key e Project ID.</span>';
+    if (status) status.innerHTML = '<span style="color:#A32D2D">Preencha ao menos API Key e Project ID.</span>';
     return;
   }
   localStorage.setItem('smee_fb_cfg', JSON.stringify(cfg));
-  document.getElementById('fb-status').innerHTML = '<span style="color:#3B6D11">✓ Configuração salva. Novos registros serão enviados ao Firestore.</span>';
-  document.getElementById('mode-badge').textContent = 'Firebase ativo';
-  document.getElementById('mode-badge').style.cssText = 'background:#EAF3DE;color:#3B6D11';
+  if (status) status.innerHTML = '<span style="color:#3B6D11">✓ Configuração salva.</span>';
+  const badge = document.getElementById('mode-badge');
+  if (badge) { badge.textContent = 'Firebase ativo'; badge.style.cssText = 'background:#EAF3DE;color:#3B6D11'; }
 }
 
-/* ---- INIT ---- */
+function updateFooterCount() {
+  const el = document.getElementById('footer-count');
+  if (el) el.textContent = DB.length;
+}
+
 function initApp() {
-  /* Restaura config Firebase se salva */
-  var saved = localStorage.getItem('smee_fb_cfg');
+  const saved = localStorage.getItem('smee_fb_cfg');
   if (saved) {
     try {
-      var c = JSON.parse(saved);
-      ['apiKey','authDomain','projectId','appId'].forEach(function(k) {
-        var el = document.getElementById('cfg-' + k);
+      const c = JSON.parse(saved);
+      ['apiKey','authDomain','projectId','appId'].forEach(k => {
+        const el = document.getElementById('cfg-' + k);
         if (el && c[k]) el.value = c[k];
       });
-      var badge = document.getElementById('mode-badge');
-      if (badge) {
-        badge.textContent = 'Firebase configurado';
-        badge.style.cssText = 'background:#EAF3DE;color:#3B6D11';
-      }
-    } catch(e) {}
+      const badge = document.getElementById('mode-badge');
+      if (badge) { badge.textContent = 'Firebase configurado'; badge.style.cssText = 'background:#EAF3DE;color:#3B6D11'; }
+    } catch (_e) { /* config inválida */ }
   }
 
-  /* Busca no formulário */
-  var search = document.getElementById('search');
+  const search = document.getElementById('search');
   if (search) search.addEventListener('input', renderList);
 
-  document.getElementById('last-update').textContent = new Date().toLocaleDateString('pt-BR');
+  document.getElementById('menu-btn')?.addEventListener('click', () => {
+    document.getElementById('sidebar')?.classList.toggle('open');
+  });
+  document.getElementById('sidebar-close')?.addEventListener('click', () => {
+    document.getElementById('sidebar')?.classList.remove('open');
+  });
+
+  const lastUpdate = document.getElementById('last-update');
+  if (lastUpdate) lastUpdate.textContent = new Date().toLocaleDateString('pt-BR');
+
+  updateFooterCount();
 }
 
 </script>
 <script>
 /*  SMEE Feira — auth.js  */
-var AUTH = {
+const AUTH = {
   SESSION_KEY:  'feira_auth',
   LABEL_KEY:    'feira_label',
   ATTEMPTS_KEY: 'feira_attempts',
@@ -570,9 +599,9 @@ var AUTH = {
     return sessionStorage.getItem(this.SESSION_KEY) === 'ok';
   },
   validate: function(input) {
-    var keys = window.ACCESS_KEYS || [];
-    var clean = input.trim().toUpperCase().replace(/\s/g,'');
-    var now = new Date();
+    const keys = window.ACCESS_KEYS || [];
+    const clean = input.trim().toUpperCase().replace(/\s/g,'');
+    const now = new Date();
     return keys.find(function(k) {
       if (k.key.trim().toUpperCase().replace(/\s/g,'') !== clean) return false;
       if (k.expires && new Date(k.expires + 'T23:59:59') < now) return false;
@@ -580,7 +609,7 @@ var AUTH = {
     }) || null;
   },
   isLockedOut: function() {
-    var until = localStorage.getItem(this.LOCKOUT_KEY);
+    let until = localStorage.getItem(this.LOCKOUT_KEY);
     if (!until) return false;
     if (Date.now() < parseInt(until)) return true;
     localStorage.removeItem(this.LOCKOUT_KEY);
@@ -591,7 +620,7 @@ var AUTH = {
     return Math.max(0, Math.ceil((parseInt(localStorage.getItem(this.LOCKOUT_KEY)||0) - Date.now()) / 60000));
   },
   registerAttempt: function() {
-    var n = parseInt(localStorage.getItem(this.ATTEMPTS_KEY)||0) + 1;
+    let n = parseInt(localStorage.getItem(this.ATTEMPTS_KEY)||0) + 1;
     localStorage.setItem(this.ATTEMPTS_KEY, n);
     if (n >= this.MAX_ATTEMPTS) {
       localStorage.setItem(this.LOCKOUT_KEY, Date.now() + this.LOCKOUT_MS);
@@ -616,7 +645,7 @@ var AUTH = {
 };
 
 function buildLoginScreen() {
-  var overlay = document.createElement('div');
+  const overlay = document.createElement('div');
   overlay.id = 'auth-overlay';
   overlay.innerHTML = '<div class="auth-card" id="auth-card">'
     + '<div class="auth-logo"><svg width="44" height="44" viewBox="0 0 44 44" fill="none"><rect width="44" height="44" rx="12" fill="#185FA5"/><path d="M10 32L18 16l6 10 5-7 7 13" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>'
@@ -634,7 +663,7 @@ function buildLoginScreen() {
   document.body.appendChild(overlay);
   injectAuthStyles();
   checkLockoutUI();
-  var inp = document.getElementById('key-input');
+  const inp = document.getElementById('key-input');
   if (inp) {
     inp.focus();
     inp.addEventListener('keydown', function(e) { if (e.key === 'Enter') submitKey(); });
@@ -643,8 +672,8 @@ function buildLoginScreen() {
 }
 
 function formatKey(input) {
-  var v = input.value.toUpperCase().replace(/[^A-Z0-9]/g,'');
-  var out = '';
+  const v = input.value.toUpperCase().replace(/[^A-Z0-9]/g,'');
+  const out = '';
   for (var i = 0; i < v.length && i < 20; i++) {
     if (i > 0 && i % 4 === 0) out += '-';
     out += v[i];
@@ -654,17 +683,17 @@ function formatKey(input) {
 
 function submitKey() {
   if (AUTH.isLockedOut()) { checkLockoutUI(); return; }
-  var input = document.getElementById('key-input');
-  var btn   = document.getElementById('auth-btn');
-  var msg   = document.getElementById('auth-msg');
-  var key   = (input.value || '').trim();
+  const input = document.getElementById('key-input');
+  const btn   = document.getElementById('auth-btn');
+  const msg   = document.getElementById('auth-msg');
+  const key   = (input.value || '').trim();
   if (!key) { showMsg('Digite sua chave de acesso.', 'warn'); return; }
 
   btn.disabled = true;
   btn.innerHTML = '<span class="auth-spinner"></span> Verificando...';
 
   setTimeout(function() {
-    var found = AUTH.validate(key);
+    const found = AUTH.validate(key);
     if (found) {
       btn.innerHTML = '✓ Acesso liberado';
       btn.style.background = '#3B6D11';
@@ -676,7 +705,7 @@ function submitKey() {
         addUserPill();
       }, 700);
     } else {
-      var rem = AUTH.registerAttempt();
+      const rem = AUTH.registerAttempt();
       btn.disabled = false;
       btn.innerHTML = 'Entrar <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>';
       if (AUTH.isLockedOut()) {
@@ -685,7 +714,7 @@ function submitKey() {
         showMsg('Chave inválida ou expirada.' + (rem > 0 ? ' (' + rem + ' tentativa' + (rem > 1 ? 's' : '') + ' restante' + (rem > 1 ? 's' : '') + ')' : ''), 'err');
         input.value = '';
         input.focus();
-        var card = document.getElementById('auth-card');
+        const card = document.getElementById('auth-card');
         card.classList.add('shake');
         setTimeout(function() { card.classList.remove('shake'); }, 500);
       }
@@ -694,7 +723,7 @@ function submitKey() {
 }
 
 function showMsg(text, type) {
-  var el = document.getElementById('auth-msg');
+  const el = document.getElementById('auth-msg');
   if (!el) return;
   el.textContent = text;
   el.className = 'auth-msg auth-msg-' + type;
@@ -702,16 +731,16 @@ function showMsg(text, type) {
 
 function checkLockoutUI() {
   if (AUTH.isLockedOut()) {
-    var wrap = document.getElementById('auth-input-wrap');
-    var lock = document.getElementById('auth-lockout');
+    const wrap = document.getElementById('auth-input-wrap');
+    const lock = document.getElementById('auth-lockout');
     if (wrap) wrap.style.display = 'none';
     if (lock) { lock.style.display = 'block'; document.getElementById('lockout-time').textContent = AUTH.lockoutRemaining(); }
-    var iv = setInterval(function() {
+    const iv = setInterval(function() {
       if (!AUTH.isLockedOut()) {
         clearInterval(iv);
         if (wrap) wrap.style.display = 'flex';
         if (lock) lock.style.display = 'none';
-        var inp = document.getElementById('key-input');
+        const inp = document.getElementById('key-input');
         if (inp) inp.focus();
       } else {
         document.getElementById('lockout-time').textContent = AUTH.lockoutRemaining();
@@ -721,10 +750,10 @@ function checkLockoutUI() {
 }
 
 function addUserPill() {
-  var label = AUTH.getLabel();
-  var bar   = document.getElementById('topbar-actions');
+  const label = AUTH.getLabel();
+  const bar   = document.getElementById('topbar-actions');
   if (!bar) return;
-  var pill = document.createElement('div');
+  const pill = document.createElement('div');
   pill.className = 'user-pill';
   pill.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>'
     + '<span>' + escHtml(label) + '</span>'
@@ -733,7 +762,7 @@ function addUserPill() {
 }
 
 function injectAuthStyles() {
-  var s = document.createElement('style');
+  const s = document.createElement('style');
   s.textContent = '#auth-overlay{position:fixed;inset:0;z-index:9999;background:linear-gradient(135deg,#0a1628 0%,#0c447c 50%,#0a1628 100%);display:flex;align-items:center;justify-content:center;padding:20px}'
     + '.auth-card{background:#fff;border-radius:16px;padding:40px 36px;width:100%;max-width:420px;text-align:center;box-shadow:0 25px 60px rgba(0,0,0,.4);animation:authIn .4s ease}'
     + '@keyframes authIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}'
@@ -770,11 +799,7 @@ function initAuth() {
   }
 }
 
-document.getElementById("menu-btn").addEventListener("click",function(){document.getElementById("sidebar").classList.toggle("open");});
-document.getElementById("sidebar-close").addEventListener("click",function(){document.getElementById("sidebar").classList.remove("open");});
-function updateFooterCount(){var el=document.getElementById("footer-count");if(el)el.textContent=(window.DB||[]).length;}
-var _origSave=window.saveDB;window.saveDB=function(){_origSave();updateFooterCount();};
-window.addEventListener("DOMContentLoaded",function(){initAuth();updateFooterCount();});
+window.addEventListener("DOMContentLoaded", function() { initAuth(); });
 </script>
 </body>
 </html>

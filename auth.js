@@ -1,5 +1,5 @@
 /*  SMEE Feira — auth.js  */
-var AUTH = {
+const AUTH = {
   SESSION_KEY:  'feira_auth',
   LABEL_KEY:    'feira_label',
   ATTEMPTS_KEY: 'feira_attempts',
@@ -11,9 +11,9 @@ var AUTH = {
     return sessionStorage.getItem(this.SESSION_KEY) === 'ok';
   },
   validate: function(input) {
-    var keys = window.ACCESS_KEYS || [];
-    var clean = input.trim().toUpperCase().replace(/\s/g,'');
-    var now = new Date();
+    const keys = window.ACCESS_KEYS || [];
+    const clean = input.trim().toUpperCase().replace(/\s/g,'');
+    const now = new Date();
     return keys.find(function(k) {
       if (k.key.trim().toUpperCase().replace(/\s/g,'') !== clean) return false;
       if (k.expires && new Date(k.expires + 'T23:59:59') < now) return false;
@@ -21,7 +21,7 @@ var AUTH = {
     }) || null;
   },
   isLockedOut: function() {
-    var until = localStorage.getItem(this.LOCKOUT_KEY);
+    let until = localStorage.getItem(this.LOCKOUT_KEY);
     if (!until) return false;
     if (Date.now() < parseInt(until)) return true;
     localStorage.removeItem(this.LOCKOUT_KEY);
@@ -32,7 +32,7 @@ var AUTH = {
     return Math.max(0, Math.ceil((parseInt(localStorage.getItem(this.LOCKOUT_KEY)||0) - Date.now()) / 60000));
   },
   registerAttempt: function() {
-    var n = parseInt(localStorage.getItem(this.ATTEMPTS_KEY)||0) + 1;
+    let n = parseInt(localStorage.getItem(this.ATTEMPTS_KEY)||0) + 1;
     localStorage.setItem(this.ATTEMPTS_KEY, n);
     if (n >= this.MAX_ATTEMPTS) {
       localStorage.setItem(this.LOCKOUT_KEY, Date.now() + this.LOCKOUT_MS);
@@ -57,7 +57,7 @@ var AUTH = {
 };
 
 function buildLoginScreen() {
-  var overlay = document.createElement('div');
+  const overlay = document.createElement('div');
   overlay.id = 'auth-overlay';
   overlay.innerHTML = '<div class="auth-card" id="auth-card">'
     + '<div class="auth-logo"><svg width="44" height="44" viewBox="0 0 44 44" fill="none"><rect width="44" height="44" rx="12" fill="#185FA5"/><path d="M10 32L18 16l6 10 5-7 7 13" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>'
@@ -75,7 +75,7 @@ function buildLoginScreen() {
   document.body.appendChild(overlay);
   injectAuthStyles();
   checkLockoutUI();
-  var inp = document.getElementById('key-input');
+  const inp = document.getElementById('key-input');
   if (inp) {
     inp.focus();
     inp.addEventListener('keydown', function(e) { if (e.key === 'Enter') submitKey(); });
@@ -84,8 +84,8 @@ function buildLoginScreen() {
 }
 
 function formatKey(input) {
-  var v = input.value.toUpperCase().replace(/[^A-Z0-9]/g,'');
-  var out = '';
+  const v = input.value.toUpperCase().replace(/[^A-Z0-9]/g,'');
+  const out = '';
   for (var i = 0; i < v.length && i < 20; i++) {
     if (i > 0 && i % 4 === 0) out += '-';
     out += v[i];
@@ -95,17 +95,17 @@ function formatKey(input) {
 
 function submitKey() {
   if (AUTH.isLockedOut()) { checkLockoutUI(); return; }
-  var input = document.getElementById('key-input');
-  var btn   = document.getElementById('auth-btn');
-  var msg   = document.getElementById('auth-msg');
-  var key   = (input.value || '').trim();
+  const input = document.getElementById('key-input');
+  const btn   = document.getElementById('auth-btn');
+  const msg   = document.getElementById('auth-msg');
+  const key   = (input.value || '').trim();
   if (!key) { showMsg('Digite sua chave de acesso.', 'warn'); return; }
 
   btn.disabled = true;
   btn.innerHTML = '<span class="auth-spinner"></span> Verificando...';
 
   setTimeout(function() {
-    var found = AUTH.validate(key);
+    const found = AUTH.validate(key);
     if (found) {
       btn.innerHTML = '✓ Acesso liberado';
       btn.style.background = '#3B6D11';
@@ -117,7 +117,7 @@ function submitKey() {
         addUserPill();
       }, 700);
     } else {
-      var rem = AUTH.registerAttempt();
+      const rem = AUTH.registerAttempt();
       btn.disabled = false;
       btn.innerHTML = 'Entrar <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>';
       if (AUTH.isLockedOut()) {
@@ -126,7 +126,7 @@ function submitKey() {
         showMsg('Chave inválida ou expirada.' + (rem > 0 ? ' (' + rem + ' tentativa' + (rem > 1 ? 's' : '') + ' restante' + (rem > 1 ? 's' : '') + ')' : ''), 'err');
         input.value = '';
         input.focus();
-        var card = document.getElementById('auth-card');
+        const card = document.getElementById('auth-card');
         card.classList.add('shake');
         setTimeout(function() { card.classList.remove('shake'); }, 500);
       }
@@ -135,7 +135,7 @@ function submitKey() {
 }
 
 function showMsg(text, type) {
-  var el = document.getElementById('auth-msg');
+  const el = document.getElementById('auth-msg');
   if (!el) return;
   el.textContent = text;
   el.className = 'auth-msg auth-msg-' + type;
@@ -143,16 +143,16 @@ function showMsg(text, type) {
 
 function checkLockoutUI() {
   if (AUTH.isLockedOut()) {
-    var wrap = document.getElementById('auth-input-wrap');
-    var lock = document.getElementById('auth-lockout');
+    const wrap = document.getElementById('auth-input-wrap');
+    const lock = document.getElementById('auth-lockout');
     if (wrap) wrap.style.display = 'none';
     if (lock) { lock.style.display = 'block'; document.getElementById('lockout-time').textContent = AUTH.lockoutRemaining(); }
-    var iv = setInterval(function() {
+    const iv = setInterval(function() {
       if (!AUTH.isLockedOut()) {
         clearInterval(iv);
         if (wrap) wrap.style.display = 'flex';
         if (lock) lock.style.display = 'none';
-        var inp = document.getElementById('key-input');
+        const inp = document.getElementById('key-input');
         if (inp) inp.focus();
       } else {
         document.getElementById('lockout-time').textContent = AUTH.lockoutRemaining();
@@ -162,10 +162,10 @@ function checkLockoutUI() {
 }
 
 function addUserPill() {
-  var label = AUTH.getLabel();
-  var bar   = document.getElementById('topbar-actions');
+  const label = AUTH.getLabel();
+  const bar   = document.getElementById('topbar-actions');
   if (!bar) return;
-  var pill = document.createElement('div');
+  const pill = document.createElement('div');
   pill.className = 'user-pill';
   pill.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>'
     + '<span>' + escHtml(label) + '</span>'
@@ -174,7 +174,7 @@ function addUserPill() {
 }
 
 function injectAuthStyles() {
-  var s = document.createElement('style');
+  const s = document.createElement('style');
   s.textContent = '#auth-overlay{position:fixed;inset:0;z-index:9999;background:linear-gradient(135deg,#0a1628 0%,#0c447c 50%,#0a1628 100%);display:flex;align-items:center;justify-content:center;padding:20px}'
     + '.auth-card{background:#fff;border-radius:16px;padding:40px 36px;width:100%;max-width:420px;text-align:center;box-shadow:0 25px 60px rgba(0,0,0,.4);animation:authIn .4s ease}'
     + '@keyframes authIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}'
