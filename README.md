@@ -1,7 +1,7 @@
 # 🎪 SMEE Feira — Cadastro de Visitantes
 
 Sistema web para cadastro de visitantes em estandes de feiras e eventos.  
-Sem backend, sem instalação — hospede gratuitamente no GitHub Pages.
+Sem backend, sem instalação — Alber Silva - (31)9 9975-8194.
 
 ---
 
