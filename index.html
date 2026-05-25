@@ -1036,7 +1036,12 @@ function initApp() {
 /* ---- QR CODE ---- */
 function generateQR() {
   const canvas = document.getElementById('qr-canvas');
-  if (!canvas || typeof QRious === 'undefined') return;
+  if (!canvas) return;
+  if (typeof QRious === 'undefined') {
+    // Biblioteca ainda não carregou — tenta novamente em 500ms
+    setTimeout(generateQR, 500);
+    return;
+  }
 
   const size  = parseInt(document.getElementById('qr-size')?.value || '300');
   const label = document.getElementById('qr-label')?.value || '';
@@ -1088,21 +1093,19 @@ function printQR() {
   const img   = canvas.toDataURL('image/png');
   const win   = window.open('', '_blank');
   const label = document.getElementById('qr-label')?.value || 'Escaneie para se cadastrar!';
-  win.document.write(`<!DOCTYPE html><html><head><title>QR Code</title>
-    <style>
-      body{font-family:sans-serif;text-align:center;padding:40px;background:#fff}
-      img{max-width:400px;display:block;margin:0 auto 16px}
-      h2{font-size:20px;color:#0a1628;margin-bottom:8px}
-      p{font-size:14px;color:#64748b}
-      @media print{body{padding:0}}
-    </style>  <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
-</head><body>
-    <h2>Cadastro de Visitantes</h2>
-    <img src="${img}">
-    <p>${label}</p>
-    <p style="font-size:12px;color:#94a3b8">adasilva-simon.github.io/visitantes/</p>
-    <script>window.onload=function(){window.print();}<\/script>
-    </body></html>`);
+  const pageHtml = '<!DOCTYPE html><html><head><title>QR Code</title>'
+    + '<style>body{font-family:sans-serif;text-align:center;padding:40px}'
+    + 'img{max-width:350px;display:block;margin:0 auto 16px}'
+    + 'h2{font-size:20px;color:#0a1628;margin-bottom:8px}'
+    + 'p{font-size:14px;color:#64748b}'
+    + '@media print{body{padding:0}}</style></head><body>'
+    + '<h2>Cadastro de Visitantes</h2>'
+    + '<img src="' + img + '">'
+    + '<p><strong>' + label + '</strong></p>'
+    + '<p style="font-size:12px;color:#94a3b8">adasilva-simon.github.io/visitantes/</p>'
+    + '<script>window.onload=function(){window.print();}<\/script>'
+    + '</body></html>';
+  win.document.write(pageHtml);
   win.document.close();
 }
 
@@ -1111,6 +1114,7 @@ function printQR() {
 window.addEventListener("DOMContentLoaded", function() {
   initApp();
   initFirebase();
+  setTimeout(generateQR, 800);
 });
 </script>
 </body>
