@@ -216,6 +216,7 @@ tbody td { padding: 8px 12px; }
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
 </head>
 <body>
 
@@ -242,6 +243,9 @@ tbody td { padding: 8px 12px; }
     </button>
     <button class="nav-item" data-tab="lgpd" onclick="go('lgpd')">
       <i class="ti ti-shield-check" aria-hidden="true"></i> LGPD
+    </button>
+    <button class="nav-item" data-tab="qrcode" onclick="go('qrcode')">
+      <i class="ti ti-qrcode" aria-hidden="true"></i> QR Code
     </button>
     <button class="nav-item" data-tab="config" onclick="go('config')">
       <i class="ti ti-settings" aria-hidden="true"></i> Firebase
@@ -474,6 +478,60 @@ tbody td { padding: 8px 12px; }
       <div class="lgpd-item"><i class="ti ti-lock lgpd-icon" aria-hidden="true"></i><div><div class="lgpd-title">Segurança (art. 46)</div><div class="lgpd-desc">Dados no Firebase Firestore com autenticação. Configure regras de segurança para restringir acesso somente a usuários autorizados.</div></div></div>
     </section>
 
+    <!-- QR CODE -->
+    <section id="sec-qrcode" class="section">
+      <div class="section-header">
+        <h1>QR Code — Autoatendimento</h1>
+        <p>Imprima ou exiba este QR Code no estande. O visitante escaneia e preenche o cadastro no próprio celular.</p>
+      </div>
+
+      <div class="card" style="text-align:center;padding:32px">
+        <div id="qr-container" style="display:inline-block;padding:16px;background:white;border-radius:12px;border:2px solid var(--border);margin-bottom:20px">
+          <canvas id="qr-canvas"></canvas>
+        </div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:20px">
+          <strong>Link:</strong> <a href="https://adasilva-simon.github.io/visitantes/" target="_blank" style="color:var(--primary)">adasilva-simon.github.io/visitantes/</a>
+        </div>
+        <div class="btn-group" style="justify-content:center">
+          <button class="btn btn-primary" onclick="downloadQR()">
+            <i class="ti ti-download" aria-hidden="true"></i> Baixar PNG
+          </button>
+          <button class="btn" onclick="printQR()">
+            <i class="ti ti-printer" aria-hidden="true"></i> Imprimir
+          </button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><i class="ti ti-adjustments" aria-hidden="true"></i> Personalizar</div>
+        <div class="form-row form-row-2">
+          <div>
+            <label for="qr-size">Tamanho</label>
+            <select id="qr-size" onchange="generateQR()">
+              <option value="200">Pequeno (200px)</option>
+              <option value="300" selected>Médio (300px)</option>
+              <option value="400">Grande (400px)</option>
+              <option value="500">Extra grande (500px)</option>
+            </select>
+          </div>
+          <div>
+            <label for="qr-label">Texto abaixo do QR Code</label>
+            <input id="qr-label" type="text" value="Escaneie para se cadastrar!" oninput="generateQR()">
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><i class="ti ti-info-circle" aria-hidden="true"></i> Como usar</div>
+        <div style="font-size:13px;color:var(--muted);line-height:1.8">
+          <p>1. Clique em <strong>Baixar PNG</strong> para salvar a imagem do QR Code</p>
+          <p>2. Imprima e coloque no balcão, banner ou totem do estande</p>
+          <p>3. O visitante escaneia com a câmera do celular e já abre o formulário de cadastro</p>
+          <p>4. Após preencher, os dados aparecem em tempo real no Dashboard e na aba Visitantes</p>
+        </div>
+      </div>
+    </section>
+
     <!-- FIREBASE -->
     <section id="sec-config" class="section">
       <div class="section-header">
@@ -688,13 +746,14 @@ const TAB_TITLES = {
   dash: 'Dashboard — KPIs',
   list: 'Lista de Visitantes',
   lgpd: 'Conformidade LGPD',
+  qrcode: 'QR Code — Autoatendimento',
   config: 'Configuração Firebase'
 };
 
 function go(tab) {
   document.querySelectorAll('.tab, .nav-item').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-  const idx = ['reg','dash','list','lgpd','config'].indexOf(tab);
+  const idx = ['reg','dash','list','lgpd','qrcode','config'].indexOf(tab);
   document.querySelectorAll('.nav-item')[idx]?.classList.add('active');
   document.getElementById('sec-' + tab)?.classList.add('active');
   const titleEl = document.getElementById('page-title');
@@ -969,6 +1028,82 @@ function initApp() {
   if (lastUpdate) lastUpdate.textContent = new Date().toLocaleDateString('pt-BR');
 
   updateFooterCount();
+}
+
+</script>
+<script>
+
+/* ---- QR CODE ---- */
+function generateQR() {
+  const canvas = document.getElementById('qr-canvas');
+  if (!canvas || typeof QRious === 'undefined') return;
+
+  const size  = parseInt(document.getElementById('qr-size')?.value || '300');
+  const label = document.getElementById('qr-label')?.value || '';
+
+  const qr = new QRious({
+    element: canvas,
+    value:   'https://adasilva-simon.github.io/visitantes/',
+    size:    size,
+    level:   'H',
+    background: '#ffffff',
+    foreground: '#0a1628'
+  });
+
+  // Adiciona label abaixo se preenchido
+  if (label) {
+    const ctx = canvas.getContext('2d');
+    const totalH = size + 40;
+    const tmp = document.createElement('canvas');
+    tmp.width  = size;
+    tmp.height = totalH;
+    const tctx = tmp.getContext('2d');
+    tctx.fillStyle = '#ffffff';
+    tctx.fillRect(0, 0, size, totalH);
+    tctx.drawImage(canvas, 0, 0);
+    tctx.fillStyle = '#0a1628';
+    tctx.font = 'bold 14px sans-serif';
+    tctx.textAlign = 'center';
+    tctx.fillText(label, size/2, size + 26);
+    canvas.width  = size;
+    canvas.height = totalH;
+    canvas.getContext('2d').drawImage(tmp, 0, 0);
+  }
+}
+
+function downloadQR() {
+  generateQR();
+  const canvas = document.getElementById('qr-canvas');
+  if (!canvas) return;
+  const a = document.createElement('a');
+  a.download = 'qrcode-cadastro-feira.png';
+  a.href = canvas.toDataURL('image/png');
+  a.click();
+}
+
+function printQR() {
+  generateQR();
+  const canvas = document.getElementById('qr-canvas');
+  if (!canvas) return;
+  const img   = canvas.toDataURL('image/png');
+  const win   = window.open('', '_blank');
+  const label = document.getElementById('qr-label')?.value || 'Escaneie para se cadastrar!';
+  win.document.write(`<!DOCTYPE html><html><head><title>QR Code</title>
+    <style>
+      body{font-family:sans-serif;text-align:center;padding:40px;background:#fff}
+      img{max-width:400px;display:block;margin:0 auto 16px}
+      h2{font-size:20px;color:#0a1628;margin-bottom:8px}
+      p{font-size:14px;color:#64748b}
+      @media print{body{padding:0}}
+    </style>  <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
+</head><body>
+    <h2>Cadastro de Visitantes</h2>
+    <img src="${img}">
+    <p>${label}</p>
+    <p style="font-size:12px;color:#94a3b8">adasilva-simon.github.io/visitantes/</p>
+    <script>window.onload=function(){window.print();}<\/script>
+    </body></html>`);
+  win.document.close();
 }
 
 </script>
