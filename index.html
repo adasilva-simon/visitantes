@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cadastro de Visitantes — SMEE Feira</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.3.0/tabler-icons.min.css">
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <div class="logo">
+      <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+        <rect width="28" height="28" rx="8" fill="#185FA5"/>
+        <path d="M6 20L11 10l4 7 3-4.5 5 7.5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      SMEE Feira
+    </div>
+    <button class="sidebar-close" id="sidebar-close" aria-label="Fechar menu">&#10005;</button>
+  </div>
+  <nav class="nav">
+    <button class="nav-item active" data-tab="reg" onclick="go('reg')">
+      <i class="ti ti-user-plus" aria-hidden="true"></i> Cadastro
+    </button>
+    <button class="nav-item" data-tab="dash" onclick="go('dash')">
+      <i class="ti ti-chart-bar" aria-hidden="true"></i> Dashboard
+    </button>
+    <button class="nav-item" data-tab="list" onclick="go('list')">
+      <i class="ti ti-list" aria-hidden="true"></i> Visitantes
+    </button>
+    <button class="nav-item" data-tab="lgpd" onclick="go('lgpd')">
+      <i class="ti ti-shield-check" aria-hidden="true"></i> LGPD
+    </button>
+    <button class="nav-item" data-tab="config" onclick="go('config')">
+      <i class="ti ti-settings" aria-hidden="true"></i> Firebase
+    </button>
+  </nav>
+  <div class="sidebar-footer">
+    <span class="rec-count" id="footer-count">0</span> visitante(s) registrado(s)
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main" id="main">
+  <header class="topbar">
+    <button class="menu-btn" id="menu-btn" aria-label="Abrir menu">
+      <i class="ti ti-menu-2" aria-hidden="true"></i>
+    </button>
+    <div class="topbar-title" id="page-title">Cadastro de Visitante</div>
+    <div id="topbar-actions">
+      <span class="last-update" id="last-update">—</span>
+      <button class="btn btn-sm" onclick="exportCSV()">
+        <i class="ti ti-download" aria-hidden="true"></i> CSV
+      </button>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <!-- CADASTRO -->
+    <section id="sec-reg" class="section active">
+      <div class="section-header">
+        <h1>Cadastro de Visitante</h1>
+        <p>Preencha os dados e obtenha o consentimento LGPD antes de registrar.</p>
+      </div>
+      <div id="form-alert" style="display:none"></div>
+      <div class="card">
+        <div class="card-title">
+          <i class="ti ti-user" aria-hidden="true"></i>
+          Dados pessoais e profissionais
+          <span class="mode-badge" id="mode-badge">modo local</span>
+        </div>
+        <div class="form-row form-row-2">
+          <div><label for="f-nome">Nome completo *</label><input id="f-nome" type="text" placeholder="Nome e sobrenome"></div>
+          <div><label for="f-email">E-mail *</label><input id="f-email" type="email" placeholder="email@empresa.com"></div>
+        </div>
+        <div class="form-row form-row-3">
+          <div><label for="f-tel">Telefone / WhatsApp</label><input id="f-tel" type="tel" placeholder="(11) 9 0000-0000"></div>
+          <div><label for="f-empresa">Empresa</label><input id="f-empresa" type="text" placeholder="Nome da empresa"></div>
+          <div><label for="f-cargo">Cargo</label><input id="f-cargo" type="text" placeholder="Diretor, Gerente..."></div>
+        </div>
+        <div class="form-row form-row-2">
+          <div>
+            <label for="f-estande">Estande de interesse *</label>
+            <select id="f-estande">
+              <option value="">Selecione o estande...</option>
+              <option>Estande A — Automação Industrial</option>
+              <option>Estande B — Energia e Sustentabilidade</option>
+              <option>Estande C — Software e TI</option>
+              <option>Estande D — Conectividade e IoT</option>
+              <option>Estande E — Segurança e Monitoramento</option>
+            </select>
+          </div>
+          <div>
+            <label for="f-temp">Temperatura do lead</label>
+            <select id="f-temp">
+              <option value="cold">Frio — apenas informações</option>
+              <option value="warm" selected>Morno — interesse moderado</option>
+              <option value="hot">Quente — quer contato / proposta</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div><label for="f-obs">Observações e interesses</label>
+          <textarea id="f-obs" placeholder="Produto de interesse, perguntas feitas, próximos passos..."></textarea></div>
+        </div>
+      </div>
+
+      <div class="consent-block">
+        <div style="font-size:13px;font-weight:600;margin-bottom:10px">
+          <i class="ti ti-shield-check" aria-hidden="true"></i> Consentimento LGPD — Lei 13.709/2018
+        </div>
+        <div class="consent-row">
+          <input type="checkbox" id="c1">
+          <label for="c1">Autorizo o uso dos meus dados pessoais para contato comercial relacionado a este evento, conforme a Lei Geral de Proteção de Dados. Posso solicitar a exclusão dos meus dados a qualquer momento.</label>
+        </div>
+        <div class="consent-row">
+          <input type="checkbox" id="c2">
+          <label for="c2">Confirmo que as informações fornecidas são verdadeiras e foram fornecidas de forma voluntária e informada.</label>
+        </div>
+        <div class="consent-legal">
+          Base legal: art. 7º, I — consentimento. Finalidade: follow-up comercial pós-feira.
+          Controlador: responsável pelo estande. Encarregado: disponível mediante solicitação.
+        </div>
+      </div>
+
+      <div class="btn-group">
+        <button class="btn btn-primary" onclick="registrar()">
+          <i class="ti ti-check" aria-hidden="true"></i> Registrar visitante
+        </button>
+        <button class="btn" onclick="limparForm()">
+          <i class="ti ti-refresh" aria-hidden="true"></i> Limpar formulário
+        </button>
+      </div>
+    </section>
+
+    <!-- DASHBOARD -->
+    <section id="sec-dash" class="section">
+      <div class="section-header">
+        <h1>Dashboard</h1>
+        <p>Indicadores em tempo real dos visitantes registrados.</p>
+      </div>
+      <div class="metrics" id="kpi-grid"></div>
+      <div class="charts-row">
+        <div class="card">
+          <div class="card-title"><i class="ti ti-flame" aria-hidden="true"></i> Temperatura dos leads</div>
+          <div id="chart-temp"></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><i class="ti ti-building" aria-hidden="true"></i> Visitas por estande</div>
+          <div id="chart-estande"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title"><i class="ti ti-clock" aria-hidden="true"></i> Registros por hora do dia</div>
+        <div id="chart-hora"></div>
+      </div>
+      <div class="empty-state" id="dash-empty" style="display:none">
+        <i class="ti ti-chart-bar"></i>
+        <p>Nenhum visitante registrado ainda.<br>Acesse a aba <strong>Cadastro</strong> para começar.</p>
+      </div>
+    </section>
+
+    <!-- LISTA -->
+    <section id="sec-list" class="section">
+      <div class="section-header">
+        <h1>Lista de Visitantes</h1>
+        <p>Pesquise, filtre e exporte os registros.</p>
+      </div>
+      <div class="search-row">
+        <input id="search" type="text" placeholder="Buscar por nome, empresa ou e-mail..." oninput="renderList()">
+        <select id="flt-temp" onchange="renderList()" style="width:auto">
+          <option value="">Todos os leads</option>
+          <option value="hot">Quentes</option>
+          <option value="warm">Mornos</option>
+          <option value="cold">Frios</option>
+        </select>
+        <button class="btn btn-sm" onclick="exportCSV()">
+          <i class="ti ti-download" aria-hidden="true"></i> Exportar CSV
+        </button>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr>
+            <th>Nome</th><th>Empresa</th><th>E-mail</th>
+            <th>Estande</th><th>Lead</th><th>Registrado em</th>
+            <th>LGPD</th><th></th>
+          </tr></thead>
+          <tbody id="tbl-body"></tbody>
+        </table>
+      </div>
+      <div id="list-empty" class="empty-state" style="display:none">
+        <i class="ti ti-user-off"></i>
+        <p>Nenhum visitante encontrado.</p>
+      </div>
+    </section>
+
+    <!-- LGPD -->
+    <section id="sec-lgpd" class="section">
+      <div class="section-header">
+        <h1>Conformidade LGPD</h1>
+        <p>Painel de conformidade com a Lei Geral de Proteção de Dados.</p>
+      </div>
+      <div class="card">
+        <div class="card-title"><i class="ti ti-shield-lock" aria-hidden="true"></i> Estatísticas de consentimento</div>
+        <div class="metrics" id="lgpd-stats"></div>
+        <button class="btn btn-danger btn-sm" onclick="excluirTodos()">
+          <i class="ti ti-trash" aria-hidden="true"></i> Excluir todos os dados
+        </button>
+      </div>
+      <div class="lgpd-item"><i class="ti ti-checkbox lgpd-icon" aria-hidden="true"></i><div><div class="lgpd-title">Consentimento explícito (art. 7º, I)</div><div class="lgpd-desc">Dois checkboxes obrigatórios antes do registro. Nenhum dado é salvo sem concordância ativa e informada do titular.</div></div></div>
+      <div class="lgpd-item"><i class="ti ti-target lgpd-icon" aria-hidden="true"></i><div><div class="lgpd-title">Finalidade específica (art. 6º, I)</div><div class="lgpd-desc">Dados coletados exclusivamente para follow-up comercial pós-feira. Finalidade declarada no momento da coleta.</div></div></div>
+      <div class="lgpd-item"><i class="ti ti-trash lgpd-icon" aria-hidden="true"></i><div><div class="lgpd-title">Direito ao apagamento (art. 18, VI)</div><div class="lgpd-desc">Exclusão individual por registro e exclusão em massa disponíveis a qualquer momento.</div></div></div>
+      <div class="lgpd-item"><i class="ti ti-download lgpd-icon" aria-hidden="true"></i><div><div class="lgpd-title">Portabilidade dos dados (art. 18, V)</div><div class="lgpd-desc">Exportação CSV com data e hora do consentimento, dados completos e finalidade.</div></div></div>
+      <div class="lgpd-item"><i class="ti ti-lock lgpd-icon" aria-hidden="true"></i><div><div class="lgpd-title">Segurança (art. 46)</div><div class="lgpd-desc">Dados no Firebase Firestore com autenticação. Configure regras de segurança para restringir acesso somente a usuários autorizados.</div></div></div>
+    </section>
+
+    <!-- FIREBASE -->
+    <section id="sec-config" class="section">
+      <div class="section-header">
+        <h1>Configuração Firebase</h1>
+        <p>Banco de dados em nuvem gratuito para sincronizar dados entre dispositivos.</p>
+      </div>
+      <div class="card">
+        <div class="card-title"><i class="ti ti-brand-firebase" aria-hidden="true"></i> Passo a passo</div>
+        <div class="step-row"><span class="step-num">1</span><div class="step-txt">Acesse <a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a> e crie um projeto.</div></div>
+        <div class="step-row"><span class="step-num">2</span><div class="step-txt">Em <strong>Firestore Database</strong>, crie o banco em <em>modo teste</em>.</div></div>
+        <div class="step-row"><span class="step-num">3</span><div class="step-txt">Em <strong>Configurações do projeto → Seus apps</strong>, clique em <code>&lt;/&gt;</code> e copie as credenciais.</div></div>
+        <div class="step-row"><span class="step-num">4</span><div class="step-txt">Cole os valores abaixo e clique em <strong>Salvar configuração</strong>.</div></div>
+      </div>
+      <div class="card">
+        <div class="form-row form-row-2">
+          <div><label for="cfg-apiKey">API Key</label><input id="cfg-apiKey" type="text" placeholder="AIzaSy..."></div>
+          <div><label for="cfg-authDomain">Auth Domain</label><input id="cfg-authDomain" type="text" placeholder="projeto.firebaseapp.com"></div>
+        </div>
+        <div class="form-row form-row-2">
+          <div><label for="cfg-projectId">Project ID</label><input id="cfg-projectId" type="text" placeholder="meu-projeto-firebase"></div>
+          <div><label for="cfg-appId">App ID</label><input id="cfg-appId" type="text" placeholder="1:123456:web:abc..."></div>
+        </div>
+        <div class="btn-group" style="margin-top:8px">
+          <button class="btn btn-primary" onclick="salvarConfig()">
+            <i class="ti ti-device-floppy" aria-hidden="true"></i> Salvar configuração
+          </button>
+          <button class="btn" onclick="document.getElementById('fb-status').innerHTML='<span style=color:#854F0B>Usando modo local — dados salvos só neste navegador.</span>'">
+            <i class="ti ti-wifi-off" aria-hidden="true"></i> Usar modo local
+          </button>
+        </div>
+        <div id="fb-status" style="margin-top:12px;font-size:13px"></div>
+      </div>
+      <div class="card">
+        <div style="font-size:13px;color:var(--muted);line-height:1.6">
+          <strong>Plano Spark (gratuito):</strong> 50.000 leituras/dia · 20.000 escritas/dia · 1 GB armazenamento.<br>
+          Suficiente para centenas de visitantes por feira sem nenhum custo.
+        </div>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<script src="keys.js"></script>
+<script src="app.js"></script>
+<script src="auth.js"></script>
+<script>
+  document.getElementById('menu-btn').addEventListener('click', function() {
+    document.getElementById('sidebar').classList.toggle('open');
+  });
+  document.getElementById('sidebar-close').addEventListener('click', function() {
+    document.getElementById('sidebar').classList.remove('open');
+  });
+
+  // Atualiza contador no footer
+  function updateFooterCount() {
+    var el = document.getElementById('footer-count');
+    if (el) el.textContent = (window.DB || []).length;
+  }
+  var _origSave = window.saveDB;
+  window.saveDB = function() { _origSave(); updateFooterCount(); };
+
+  window.addEventListener('DOMContentLoaded', function() {
+    initAuth();
+    updateFooterCount();
+  });
+</script>
+</body>
+</html>
