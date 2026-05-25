@@ -173,32 +173,18 @@ tbody td { padding: 8px 12px; }
 
 </style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.3.0/tabler-icons.min.css">
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
 
 <!-- SIDEBAR -->
 
-<div id="auth-screen" style="display:none;position:fixed;inset:0;z-index:9999;background:linear-gradient(135deg,#0a1628,#0c447c);align-items:center;justify-content:center;padding:20px">
-  <div style="background:white;border-radius:16px;padding:40px 36px;width:100%;max-width:400px;text-align:center;box-shadow:0 25px 60px rgba(0,0,0,.4)">
-    <svg width="44" height="44" viewBox="0 0 44 44" fill="none" style="margin-bottom:14px">
-      <rect width="44" height="44" rx="12" fill="#185FA5"/>
-      <path d="M10 32L18 16l6 10 5-7 7 13" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
-    <h1 style="font-size:22px;font-weight:700;color:#0a1628;margin-bottom:4px">SMEE Feira</h1>
-    <p style="font-size:13px;color:#185FA5;font-weight:600;margin-bottom:18px;text-transform:uppercase;letter-spacing:.04em">Cadastro de Visitantes</p>
-    <p style="font-size:14px;color:#64748b;margin-bottom:20px">Digite sua chave de acesso para continuar.</p>
-    <input id="auth-key-input" type="text" placeholder="XXXX-XXXX-XXXX-XXXX"
-      style="width:100%;height:48px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:17px;font-weight:600;text-align:center;letter-spacing:.1em;font-family:monospace;outline:none;margin-bottom:10px;padding:0 12px"
-      onkeydown="if(event.key==='Enter') authSubmit()">
-    <button onclick="authSubmit()"
-      style="width:100%;height:48px;border:none;border-radius:10px;background:#185FA5;color:white;font-size:15px;font-weight:600;cursor:pointer;margin-bottom:10px">
-      Entrar →
-    </button>
-    <div id="auth-msg" style="font-size:13px;color:#A32D2D;min-height:18px"></div>
     <p style="font-size:12px;color:#94a3b8;margin-top:16px">Para obter sua chave, contate a coordenação do evento.</p>
   </div>
 </div>
-<div id="app-screen" style="display:none;width:100%;min-height:100vh"><aside class="sidebar" id="sidebar">
+<aside class="sidebar" id="sidebar">
   <div class="sidebar-header">
     <div class="logo">
       <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
@@ -240,6 +226,8 @@ tbody td { padding: 8px 12px; }
     <div class="topbar-title" id="page-title">Cadastro de Visitante</div>
     <div id="topbar-actions">
       <span class="last-update" id="last-update">—</span>
+      <span id="sync-badge" style="font-size:12px;font-weight:500;color:#854F0B">● Conectando...</span>
+      <span id="sync-badge" style="font-size:12px;color:#854F0B;font-weight:500">● Conectando...</span>
       <button class="btn btn-sm" onclick="exportCSV()">
         <i class="ti ti-download" aria-hidden="true"></i> CSV
       </button>
@@ -448,7 +436,7 @@ tbody td { padding: 8px 12px; }
 
   </div>
 </main>
-</div>
+
 <script>
 /*
    SMEE Feira — Chaves de Acesso
@@ -465,6 +453,78 @@ const ACCESS_KEYS = [
   { key: 'F6JU-DJA2-XWHR-LE59', label: 'Coordenação',   expires: null },
   { key: 'XN8M-ZKJ4-UP3B-DW7Z', label: 'Acesso Extra',  expires: '2027-12-31' }
 ];
+
+</script>
+<script>
+
+const FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyDGChsG0VLC_hyX4LTSMReIYUKlDi8Ntp0",
+  authDomain:        "visitantes-d0608.firebaseapp.com",
+  projectId:         "visitantes-d0608",
+  storageBucket:     "visitantes-d0608.firebasestorage.app",
+  messagingSenderId: "217642333928",
+  appId:             "1:217642333928:web:fcba0ea1696fcd22eb3b5d"
+};
+
+let fbDb = null;
+
+function initFirebase() {
+  try {
+    if (!firebase || !firebase.firestore) {
+      updateSyncBadge(false, 'SDK não carregado');
+      return;
+    }
+    if (!firebase.apps.length) {
+      firebase.initializeApp(FIREBASE_CONFIG);
+    }
+    fbDb = firebase.firestore();
+    console.log("Firebase conectado!");
+    updateSyncBadge(true);
+    syncFromFirebase();
+  } catch(err) {
+    console.warn("Firebase erro:", err.message);
+    updateSyncBadge(false, err.message);
+  }
+}
+
+function updateSyncBadge(ok, msg) {
+  const badge = document.getElementById('sync-badge');
+  if (!badge) return;
+  badge.textContent = ok ? '● Firebase conectado' : ('● Modo local' + (msg ? ': '+msg : ''));
+  badge.style.color = ok ? '#3B6D11' : '#854F0B';
+}
+
+function syncFromFirebase() {
+  if (!fbDb) return;
+  fbDb.collection('visitantes').orderBy('dataConsentimento').get()
+    .then(function(snap) {
+      snap.forEach(function(d) {
+        const data = d.data();
+        if (!DB.find(function(r) { return r.id === d.id; })) {
+          DB.push(Object.assign({}, data, { id: d.id }));
+        }
+      });
+      saveDB();
+      updateFooterCount();
+      console.log("Sync OK — " + DB.length + " registros");
+    })
+    .catch(function(err) {
+      console.warn("Sync erro:", err.message);
+    });
+}
+
+function saveToFirebase(reg) {
+  if (!fbDb) return;
+  fbDb.collection('visitantes').add(reg)
+    .then(function() { console.log("Salvo no Firebase!"); })
+    .catch(function(err) { console.warn("Firebase save erro:", err.message); });
+}
+
+function deleteFromFirebase(id) {
+  if (!fbDb) return;
+  fbDb.collection('visitantes').doc(id).delete()
+    .catch(function(err) { console.warn("Firebase delete erro:", err.message); });
+}
 
 </script>
 <script>
@@ -556,6 +616,7 @@ function registrar() {
 
   DB.push(reg);
   saveDB();
+  saveToFirebase(reg);
   showAlert('Visitante registrado com sucesso!');
   limparForm();
   updateFooterCount();
@@ -606,6 +667,7 @@ function excluir(id) {
   if (!confirm('Excluir este registro? (direito ao apagamento — LGPD art. 18)')) return;
   DB = DB.filter(r => r.id !== id);
   saveDB();
+  deleteFromFirebase(id);
   renderList();
   updateFooterCount();
 }
@@ -777,49 +839,10 @@ function initApp() {
 
 </script>
 <script>
-
-/* ---- AUTH SIMPLES ---- */
-function authCheck() {
-  if (sessionStorage.getItem('feira_ok') === '1') {
-    document.getElementById('auth-screen').style.display = 'none';
-    document.getElementById('app-screen').style.display  = 'block';
-    initApp();
-    return;
-  }
-  document.getElementById('auth-screen').style.display = 'flex';
-  document.getElementById('app-screen').style.display  = 'none';
-  setTimeout(function() {
-    const inp = document.getElementById('auth-key-input');
-    if (inp) inp.focus();
-  }, 100);
-}
-
-function authSubmit() {
-  const input = document.getElementById('auth-key-input');
-  const msg   = document.getElementById('auth-msg');
-  const val   = (input.value || '').trim().toUpperCase().replace(/\s/g, '');
-
-  if (!val) { msg.textContent = 'Digite a chave de acesso.'; return; }
-
-  // Lê as chaves no momento da validação — garante que ACCESS_KEYS já foi carregado
-  const validKeys = (window.ACCESS_KEYS || []).map(function(k) {
-    return k.key.trim().toUpperCase().replace(/\s/g, '');
-  });
-
-  if (validKeys.includes(val)) {
-    sessionStorage.setItem('feira_ok', '1');
-    document.getElementById('auth-screen').style.display = 'none';
-    document.getElementById('app-screen').style.display  = 'block';
-    initApp();
-  } else {
-    msg.textContent = 'Chave inválida. Tente novamente.';
-    input.value = '';
-    input.focus();
-  }
-}
-
-document.addEventListener('DOMContentLoaded', authCheck);
-
+window.addEventListener("DOMContentLoaded", function() {
+  initApp();
+  initFirebase();
+});
 </script>
 </body>
 </html>
