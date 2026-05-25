@@ -10,7 +10,28 @@
 <body>
 
 <!-- SIDEBAR -->
-<aside class="sidebar" id="sidebar">
+
+<div id="auth-screen" style="display:none;position:fixed;inset:0;z-index:9999;background:linear-gradient(135deg,#0a1628,#0c447c);align-items:center;justify-content:center;padding:20px">
+  <div style="background:white;border-radius:16px;padding:40px 36px;width:100%;max-width:400px;text-align:center;box-shadow:0 25px 60px rgba(0,0,0,.4)">
+    <svg width="44" height="44" viewBox="0 0 44 44" fill="none" style="margin-bottom:14px">
+      <rect width="44" height="44" rx="12" fill="#185FA5"/>
+      <path d="M10 32L18 16l6 10 5-7 7 13" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <h1 style="font-size:22px;font-weight:700;color:#0a1628;margin-bottom:4px">SMEE Feira</h1>
+    <p style="font-size:13px;color:#185FA5;font-weight:600;margin-bottom:18px;text-transform:uppercase;letter-spacing:.04em">Cadastro de Visitantes</p>
+    <p style="font-size:14px;color:#64748b;margin-bottom:20px">Digite sua chave de acesso para continuar.</p>
+    <input id="auth-key-input" type="text" placeholder="XXXX-XXXX-XXXX-XXXX"
+      style="width:100%;height:48px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:17px;font-weight:600;text-align:center;letter-spacing:.1em;font-family:monospace;outline:none;margin-bottom:10px;padding:0 12px"
+      onkeydown="if(event.key==='Enter') authSubmit()">
+    <button onclick="authSubmit()"
+      style="width:100%;height:48px;border:none;border-radius:10px;background:#185FA5;color:white;font-size:15px;font-weight:600;cursor:pointer;margin-bottom:10px">
+      Entrar →
+    </button>
+    <div id="auth-msg" style="font-size:13px;color:#A32D2D;min-height:18px"></div>
+    <p style="font-size:12px;color:#94a3b8;margin-top:16px">Para obter sua chave, contate a coordenação do evento.</p>
+  </div>
+</div>
+<div id="app-screen" style="display:none;width:100%;min-height:100vh"><aside class="sidebar" id="sidebar">
   <div class="sidebar-header">
     <div class="logo">
       <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
@@ -260,7 +281,7 @@
 
   </div>
 </main>
-
+</div>
 <script>
 /*
    SMEE Feira — Chaves de Acesso
@@ -589,7 +610,43 @@ function initApp() {
 
 </script>
 <script>
-window.addEventListener("DOMContentLoaded", function() { initApp(); });
+
+/* ---- AUTH SIMPLES ---- */
+const KEYS = (window.ACCESS_KEYS || []).map(k => k.key.trim().toUpperCase());
+
+function authCheck() {
+  if (sessionStorage.getItem('feira_ok') === '1') {
+    document.getElementById('auth-screen').style.display = 'none';
+    document.getElementById('app-screen').style.display  = 'block';
+    initApp();
+    return;
+  }
+  document.getElementById('auth-screen').style.display = 'flex';
+  document.getElementById('app-screen').style.display  = 'none';
+  setTimeout(() => document.getElementById('auth-key-input').focus(), 100);
+}
+
+function authSubmit() {
+  const input = document.getElementById('auth-key-input');
+  const msg   = document.getElementById('auth-msg');
+  const val   = (input.value || '').trim().toUpperCase();
+
+  if (!val) { msg.textContent = 'Digite a chave de acesso.'; return; }
+
+  if (KEYS.includes(val)) {
+    sessionStorage.setItem('feira_ok', '1');
+    document.getElementById('auth-screen').style.display = 'none';
+    document.getElementById('app-screen').style.display  = 'block';
+    initApp();
+  } else {
+    msg.textContent = 'Chave inválida. Tente novamente.';
+    input.value = '';
+    input.focus();
+  }
+}
+
+document.addEventListener('DOMContentLoaded', authCheck);
+
 </script>
 </body>
 </html>
